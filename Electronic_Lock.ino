@@ -27,11 +27,11 @@ void setup(){
   
 void loop(){
   char customKey = customKeypad.getKey();
-  digitalWrite(13, HIGH);
+  digitalWrite(13, LOW);
   if (customKey){
     Serial.println(customKey);
-    digitalWrite(13, LOW);
-    delay(1000);
+    digitalWrite(13, HIGH);
+    delay(3000);
   }
 
   
