@@ -1,23 +1,23 @@
 ﻿# Electronic_Lock
 
-	The Electronic Lock project is to create a simple password protected lock system. The main microcontroller that is utilized is the Arduino NANO, however, it can be replaced with any other Arduino. Slight adjustments will most likely need to be made, if changed. 
+The Electronic Lock project is to create a simple password protected lock system. The main microcontroller that is utilized is the Arduino NANO, however, it can be replaced with any other Arduino. Slight adjustments will most likely need to be made, if changed. 
 
-Main Components:
-    1. Arduino NANO v.3
-    2. 16 x 2 LCD Display
-    3. TIP120
-    4. 12v Solenoid Lock
-    5. 4x4 Membrane Keypad
+## **Main Components:**
+   1. Arduino NANO v.3
+   2. 16 x 2 LCD Display
+   3. TIP120
+   4. 12v Solenoid Lock
+   5. 4x4 Membrane Keypad
 
-Libraries:
-    1. Keypad (Arduino)
-    2. Rocketscream low power
-    3. LiquidCrystal (Arduino)
+## **Libraries:**
+   1. Keypad (Arduino)
+   2. Rocketscream low power
+   3. LiquidCrystal (Arduino)
 
-System Features:
-    1. Low power mode (using Rocketscream low power library) until woken up (not implemented)
-    2. LCD will display appropriate messages (e.g. status, user inputs, etc.)
-    3. Lock will disengage upon correct input
-    4. Password can be changed (not implemented)
-    5. Button to wake system (not implemented)
+## **System Features:**
+   - [ ] Low power mode (using Rocketscream low power library) until woken up 
+   - [x] LCD will display appropriate messages (e.g. status, user inputs, etc.)
+   - [x] Lock will disengage upon correct input
+   - [ ] Password can be changed 
+   - [ ] Button to wake system 
        
