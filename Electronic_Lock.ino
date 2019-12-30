@@ -73,7 +73,6 @@ void reset(int* password) {
 
 void systemDelay(int wait) {
   long unsigned int timeStamp = millis();
-
   while ((millis() - timeStamp) < wait) {
     // do nothing
   }
