@@ -1,5 +1,6 @@
 #include <Keypad.h>
 #include <LiquidCrystal.h>
+#include <LowPower.h>
 
 enum state {
   savePower,
@@ -43,21 +44,65 @@ void loop() {
     systemDelay(1000);
     lcd.clear();
   }
+  switch (s) {
+    case savePower:
+      // LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF); //will implement once interrupt is configured
+      lcd.setCursor(0, 0);
+      lcd.print("System is awake!");
+      systemDelay(1000);
+      lcd.clear();
+      s = check;
+      break;
+    case check:
+      lcd.print("Password: ");
+      lcd.setCursor(0, 11);
+      bool isUserCorrect = checkPassword(inputPassword());
+      if (isUserCorrect) {
+        / something
+      } else {
+        //something
+      }
+      break;
+    case newPassword:
+      break;
+
+  }
+}
+
+int* inputPassword() {
+  int inputAmt = 0;
+  int* checkPassword = NULL;
+  while (inputAmt < 3) { // Could use Keypad's waitForKey() instead
+    char key = customKeypad.getKey();
+    if (key) {
+      int buttonPressed = charToInt(key);
+      if (buttonPressed == -1) {
+        lcd.setCursor(0, 1);
+        lcd.write("Incorrect Input!");
+        systemDelay(2000);
+        lcd.write("                ");
+        lcd.setCursor(inputAmt + 11, 0);
+        continue;
+      }
+      lcd.print(key);
+      *(checkPassword + inputAmt) = buttonPressed;
+      inputAmt++;
+    }
+  }
+  return checkPassword;
 }
 
 bool checkPassword(int* userPassword) {
-  bool isCorrect = false;
-  lcd.clear();
-  if (isCorrect) {
-    lcd.print("The password was correct...");
-    systemDelay(1000);
-    lcd.clear();
-    return true;
+  bool isCorrect = true;
+  for (int i = 0; i < 4; i++) {
+    if (*(userPassword + i) != *(ogPassword + i)) {
+      isCorrect = false;
+      break;
+    }
   }
-  lcd.print("Incorrect password...");
-  systemDelay(1000);
-  lcd.clear();
-  return false;
+  reset(userPassword);
+  return isCorrect;
+
 }
 void printIt() { // For debugging purposes....
   for (int i = 0; i < 4; i++) {
@@ -71,9 +116,48 @@ void reset(int* password) {
   }
 }
 
+int charToInt(char letter) {
+  int number = 0;
+  switch (letter) {
+    case '1':
+      number = 1;
+      break;
+    case '2':
+      number = 2;
+      break;
+    case '3':
+      number = 3;
+      break;
+    case '4':
+      number = 4;
+      break;
+    case '5':
+      number = 5;
+      break;
+    case '6':
+      number = 6;
+      break;
+    case '7':
+      number = 7;
+      break;
+    case '8':
+      number = 8;
+      break;
+    case '9':
+      number = 9;
+      break;
+    case '0':
+      number = 0;
+      break;
+    default:
+      number = -1;
+      break;
+  }
+  return number;
+}
+
 void systemDelay(int wait) {
   long unsigned int timeStamp = millis();
-
   while ((millis() - timeStamp) < wait) {
     // do nothing
   }
