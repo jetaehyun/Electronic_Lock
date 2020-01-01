@@ -2,6 +2,8 @@
 #include <LiquidCrystal.h>
 #include <LowPower.h>
 
+#define releaseLock 13
+
 enum state {
   savePower,
   check,
@@ -10,8 +12,11 @@ enum state {
 
 const byte ROWS = 4;
 const byte COLS = 4;
-LiquidCrystal lcd(A4, A5, A0, A1, A2, A3);
-volatile state s = savePower;
+LiquidCrystal lcd(A4, A5, A3, A2, A1, A0);
+//LiquidCrystal lcd(12, 11, A3, A2, A1, A0);
+int attemptTries = 0; 
+bool isReset = false; // use to change password
+volatile state s = check;
 
 char hexaKeys[ROWS][COLS] = {
   {'1', '2', '3', 'A'},
@@ -26,42 +31,63 @@ byte colPins[COLS] = {5, 4, 3, 2};
 
 Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 int ogPassword[4] = {1, 2, 3, 4};
+int masterPassword[4]; // master user defined password change
 
+
+ /*
+  * main things to implement:
+  *   1. Master password to create new password
+  *   2. Number of attempts
+  *   3. 
+  */
 void setup() {
   Serial.begin(9600);
-  lcd.begin(16, 0);
-  lcd.setCursor(0, 1);
-  lcd.print("Lock Activated...");
+  
+  lcd.begin(16, 2);
+  lcd.setCursor(0, 0);
+  lcd.print("Lock Activated");
   systemDelay(1000);
   lcd.clear();
+  
+  pinMode(releaseLock, OUTPUT);
 }
 
 void loop() {
-  char customKey = customKeypad.getKey();
-  if (customKey) {
-    Serial.println(customKey);
-    lcd.print(customKey);
-    systemDelay(1000);
-    lcd.clear();
-  }
+  //  char customKey = customKeypad.getKey();
+  int userPassword[4];
+  bool isUserCorrect = false;
   switch (s) {
     case savePower:
       // LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF); //will implement once interrupt is configured
-      lcd.setCursor(0, 0);
+      //      lcd.setCursor(0, 0);
       lcd.print("System is awake!");
       systemDelay(1000);
       lcd.clear();
       s = check;
       break;
     case check:
-      lcd.print("Password: ");
-      lcd.setCursor(0, 11);
-      bool isUserCorrect = checkPassword(inputPassword());
+      inputPassword(userPassword);
+      isUserCorrect = checkPassword(userPassword);
+      lcd.clear();
+      //      Serial.print(isUserCorrect);
       if (isUserCorrect) {
-        / something
+        lcd.print("Disengaging lock..");
+        digitalWrite(releaseLock, HIGH);
+        systemDelay(5000); //5 open for 5 seconds
+        digitalWrite(releaseLock, LOW);
+        lcd.clear();
       } else {
-        //something
+        lcd.print("Incorrect...");
+        //implement number of attempts
+        systemDelay(3000);
+        lcd.clear();
+        attemptTries += 1;
+        if(attemptTries == 3) {
+          attemptTries = 0;
+          //do something...alarm
+        }
       }
+//      s = savePower;
       break;
     case newPassword:
       break;
@@ -69,27 +95,31 @@ void loop() {
   }
 }
 
-int* inputPassword() {
+void inputPassword(int* checkPassword) {
   int inputAmt = 0;
-  int* checkPassword = NULL;
-  while (inputAmt < 3) { // Could use Keypad's waitForKey() instead
+  lcd.print("Password:");
+  while (inputAmt < 4) { // Could use Keypad's waitForKey() instead
     char key = customKeypad.getKey();
     if (key) {
+      if(key == '*') {
+        //password reset stuff...
+      }
       int buttonPressed = charToInt(key);
       if (buttonPressed == -1) {
         lcd.setCursor(0, 1);
-        lcd.write("Incorrect Input!");
+        lcd.print("Incorrect Input!");
         systemDelay(2000);
-        lcd.write("                ");
-        lcd.setCursor(inputAmt + 11, 0);
+        lcd.setCursor(0, 1);
+        lcd.print("                ");
         continue;
       }
+      lcd.setCursor(9 + inputAmt, 0);
       lcd.print(key);
       *(checkPassword + inputAmt) = buttonPressed;
       inputAmt++;
     }
   }
-  return checkPassword;
+  systemDelay(1000);
 }
 
 bool checkPassword(int* userPassword) {
