@@ -18,6 +18,6 @@ The Electronic Lock project is to create a simple password protected lock system
    - [ ] Low power mode (using Rocketscream low power library) until woken up 
    - [x] LCD will display appropriate messages (e.g. status, user inputs, etc.)
    - [x] Lock will disengage upon correct input
-   - [ ] Password can be changed 
+   - [x] Password can be changed 
    - [ ] Button to wake system 
        
