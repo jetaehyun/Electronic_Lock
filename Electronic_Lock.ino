@@ -16,7 +16,6 @@ LiquidCrystal lcd(A4, A5, A3, A2, A1, A0);
 int attemptTries = 3;
 bool isReset = false;                             // use to change password
 volatile state s = check;                         // use to change state of system
-unsigned long int ss[1000];
 
 char hexaKeys[ROWS][COLS] = {
   {'1', '2', '3', 'A'},
@@ -229,7 +228,6 @@ void reset(int* password) { // reset to 1, 2, 3, 4
     *(password + i) = i;
   }
 }
-
 
 /*
     function to get a user's button response
