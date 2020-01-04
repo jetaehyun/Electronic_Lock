@@ -13,7 +13,6 @@ enum state {
 const byte ROWS = 4;
 const byte COLS = 4;
 LiquidCrystal lcd(A4, A5, A3, A2, A1, A0);
-//LiquidCrystal lcd(12, 11, A3, A2, A1, A0);
 int attemptTries = 0;
 bool isReset = false; // use to change password
 volatile state s = check;
@@ -35,9 +34,8 @@ int masterPassword[4] = {1, 2, 3, 4};; // master user defined password change
 
 /*
    main things to implement:
-     1. Master password to create new password
+     1. Master password to create new password (DONE)
      2. Number of attempts
-     3.
 */
 void setup() {
   Serial.begin(9600);
@@ -62,13 +60,11 @@ void loop() {
       //      lcd.setCursor(0, 0);
       lcd.print("System is awake!");
       systemDelay(1000);
-      lcd.clear();
       s = check;
       break;
     case check:
       inputPassword(userPassword);
       if (isReset == true) { //exit case and enter new password case
-        isReset = false;
         s = newPassword;
         break;
       }
@@ -96,10 +92,23 @@ void loop() {
       break;
     case newPassword:
       lcd.clear();
+      lcd.print("Enter Old Pass..");
+      systemDelay(3000);
+      inputPassword(userPassword);
+      if(checkPassword(userPassword) == false) {
+        lcd.clear();
+        lcd.print("Incorrect...");
+        systemDelay(3000);
+        lcd.clear();
+        s = savePower;
+        break;
+      }
+      lcd.clear();
+      isReset = false;
       lcd.print("New Password:");
       lcd.setCursor(0, 1);
       for (int i = 0; i < 4; i++) {
-        *(masterPassword + i) = getUserPress();
+        *(masterPassword + i) = charToInt(getUserPress());
         if (*(masterPassword + i) == 'C') {
           lcd.clear();
           lcd.setCursor(0, 0);
@@ -108,7 +117,7 @@ void loop() {
           reset(masterPassword);
           break;
         }
-        lcd.write(*(masterPassword + i));
+        lcd.print(*(masterPassword + i));
         if (i == 3) {
           systemDelay(500);
           lcd.clear();
@@ -124,13 +133,14 @@ void loop() {
   }
 }
 
-void inputPassword(int* checkPassword) {
+void inputPassword(int* password) {
   int inputAmt = 0;
+  lcd.clear();
   lcd.print("Password:");
   while (inputAmt < 4) { // Could use Keypad's waitForKey() instead
     char key = customKeypad.getKey();
     if (key) {
-      if (key == '*' && isReset == false && inputAmt != 0) {
+      if (key == '*' && isReset == false && inputAmt == 0) {
         lcd.clear();
         lcd.print("Reset Password?");
         lcd.setCursor(0, 1);
@@ -157,7 +167,7 @@ void inputPassword(int* checkPassword) {
       }
       lcd.setCursor(9 + inputAmt, 0);
       lcd.print(key);
-      *(checkPassword + inputAmt) = buttonPressed;
+      *(password + inputAmt) = buttonPressed;
       inputAmt++;
     }
   }
@@ -186,8 +196,8 @@ void printIt(int* pArray) { // For debugging purposes....
   systemDelay(3000);
 }
 
-void reset(int* password) {
-  for (int i = 0; i < 4; i++) {
+void reset(int* password) { // reset to 1, 2, 3, 4
+  for (int i = 1; i < 5; i++) {
     *(password + i) = i;
   }
 }
@@ -195,7 +205,7 @@ void reset(int* password) {
 
 char getUserPress() {
   long unsigned int timeStamp = millis();
-  while (millis() - timeStamp < 5000) {
+  while (millis() - timeStamp < 5000) { //5 sec timer
     char key = customKeypad.getKey();
     if (key) {
       return key;
@@ -245,7 +255,7 @@ int charToInt(char letter) {
 
 void systemDelay(int wait) {
   long unsigned int timeStamp = millis();
-  while ((millis() - timeStamp) < wait) {
+  while ((millis() - timeStamp) < wait) { // wait designated time
     // do nothing
   }
 }
