@@ -13,9 +13,10 @@ enum state {
 const byte ROWS = 4;
 const byte COLS = 4;
 LiquidCrystal lcd(A4, A5, A3, A2, A1, A0);
-int attemptTries = 0;
-bool isReset = false; // use to change password
-volatile state s = check;
+int attemptTries = 3;
+bool isReset = false;                             // use to change password
+volatile state s = check;                         // use to change state of system
+unsigned long int ss[1000];
 
 char hexaKeys[ROWS][COLS] = {
   {'1', '2', '3', 'A'},
@@ -24,26 +25,28 @@ char hexaKeys[ROWS][COLS] = {
   {'*', '0', '#', 'D'}
 };
 
-byte rowPins[ROWS] = {9, 8, 7, 6};
-byte colPins[COLS] = {5, 4, 3, 2};
+byte rowPins[ROWS] = {10, 9, 8, 7};
+byte colPins[COLS] = {6, 5, 4, 3};
 
 
 Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
-int masterPassword[4] = {1, 2, 3, 4};; // master user defined password change
-
+int masterPassword[4] = {1, 2, 3, 4};;            // master user defined password change
 
 /*
-   main things to implement:
-     1. Master password to create new password (DONE)
-     2. Number of attempts
-*/
+ *  Left to do:
+ *  System is operational without save power mode...
+ *  Save power mode not implemented.
+ */
 void setup() {
   Serial.begin(9600);
 
   lcd.begin(16, 2);
   lcd.setCursor(0, 0);
   lcd.print("Lock Activated");
-  systemDelay(1000);
+  lcd.setCursor(0, 1);
+  lcd.print("Pass: 1, 2, 3, 4");
+  lcd.setCursor(0, 0);
+  systemDelay(4000);
   lcd.clear();
 
   pinMode(releaseLock, OUTPUT);
@@ -53,7 +56,7 @@ void loop() {
 
   int userPassword[4];
   bool isUserCorrect = false;
-  
+
   switch (s) {
     case savePower:
       // LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF); //will implement once interrupt is configured
@@ -64,28 +67,33 @@ void loop() {
       break;
     case check:
       inputPassword(userPassword);
-      if (isReset == true) { //exit case and enter new password case
+      if (isReset == true) {                              //exit case and enter new password case
         s = newPassword;
         break;
       }
       isUserCorrect = checkPassword(userPassword);
       lcd.clear();
-      //      Serial.print(isUserCorrect);
       if (isUserCorrect) {
+        attemptTries = 3;
         lcd.print("Disengaging lock..");
         digitalWrite(releaseLock, HIGH);
-        systemDelay(5000); //5 open for 5 seconds
+        systemDelay(5000);                                //5 open for 5 seconds
         digitalWrite(releaseLock, LOW);
         lcd.clear();
       } else {
+        attemptTries -= 1;
         lcd.print("Incorrect...");
-        //implement number of attempts
+        lcd.setCursor(0, 1);
+        lcd.print("Tries left:");
+        lcd.print(attemptTries);
         systemDelay(3000);
         lcd.clear();
-        attemptTries += 1;
-        if (attemptTries == 3) {
-          attemptTries = 0;
-          //do something...alarm
+        if (attemptTries == 0) {
+          attemptTries = 3;
+          lcd.clear();
+          lcd.setCursor(0, 0);
+          lcd.print("LOCKED!!!");
+          systemDelay(15000);
         }
       }
       //      s = savePower;
@@ -95,7 +103,7 @@ void loop() {
       lcd.print("Enter Old Pass..");
       systemDelay(3000);
       inputPassword(userPassword);
-      if(checkPassword(userPassword) == false) {
+      if (checkPassword(userPassword) == false) {
         lcd.clear();
         lcd.print("Incorrect...");
         systemDelay(3000);
@@ -133,6 +141,11 @@ void loop() {
   }
 }
 
+/*
+    function gets user's input. Checks for appropriate button press and for reset password state
+    @param int* password, pointer to first element of array (user's input)
+    @return void, nothing
+*/
 void inputPassword(int* password) {
   int inputAmt = 0;
   lcd.clear();
@@ -174,6 +187,11 @@ void inputPassword(int* password) {
   systemDelay(1000);
 }
 
+/*
+    function is to check the user's input to master password
+    @param int* userPassword, pointer to first element of array (user's input array)
+    @return isCorrect, false or true depending on case
+*/
 bool checkPassword(int* userPassword) {
   bool isCorrect = true;
   for (int i = 0; i < 4; i++) {
@@ -187,6 +205,11 @@ bool checkPassword(int* userPassword) {
 
 }
 
+/*
+    function to print out array
+    @pararm int* pArray, pointer to first element of array
+    @return void, nothing
+*/
 void printIt(int* pArray) { // For debugging purposes....
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -196,6 +219,11 @@ void printIt(int* pArray) { // For debugging purposes....
   systemDelay(3000);
 }
 
+/*
+    function is used to reset array to default value of 1, 2, 3, and 4 of corresponding elements
+    @param int* password, pointer to first element of array
+    @return void, nothing
+*/
 void reset(int* password) { // reset to 1, 2, 3, 4
   for (int i = 1; i < 5; i++) {
     *(password + i) = i;
@@ -203,6 +231,10 @@ void reset(int* password) { // reset to 1, 2, 3, 4
 }
 
 
+/*
+    function to get a user's button response
+    @return char value of button press
+*/
 char getUserPress() {
   long unsigned int timeStamp = millis();
   while (millis() - timeStamp < 5000) { //5 sec timer
@@ -213,6 +245,11 @@ char getUserPress() {
   }
   return 'C';
 }
+
+/*
+    function uses switch case to return int value of char
+    @return int
+*/
 int charToInt(char letter) {
   int number = 0;
   switch (letter) {
@@ -253,6 +290,11 @@ int charToInt(char letter) {
   return number;
 }
 
+/*
+    function is used to pause system. Purpose is to avoid using Delay()
+    @param int wait, 1000 = 1 sec
+    @return nothing
+*/
 void systemDelay(int wait) {
   long unsigned int timeStamp = millis();
   while ((millis() - timeStamp) < wait) { // wait designated time
