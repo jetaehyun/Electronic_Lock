@@ -1,11 +1,10 @@
 #include <Keypad.h>
 #include <LiquidCrystal.h>
-#include <LowPower.h>
 
 #define releaseLock 13
 
 enum state {
-  savePower,
+  wait,
   check,
   newPassword
 };
@@ -14,8 +13,9 @@ const byte ROWS = 4;
 const byte COLS = 4;
 LiquidCrystal lcd(A4, A5, A3, A2, A1, A0);
 int attemptTries = 3;
-bool isReset = false;                             // use to change password
-volatile state s = check;                         // use to change state of system
+bool lockMessage = true;
+int isReset = 0;                                          // use to change password
+state s = wait;                                           // use to change state of system
 
 char hexaKeys[ROWS][COLS] = {
   {'1', '2', '3', 'A'},
@@ -29,13 +29,8 @@ byte colPins[COLS] = {6, 5, 4, 3};
 
 
 Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
-int masterPassword[4] = {1, 2, 3, 4};;            // master user defined password change
+int masterPassword[4] = {1, 2, 3, 4};;                    // master user defined password change
 
-/*
- *  Left to do:
- *  System is operational without save power mode...
- *  Save power mode not implemented.
- */
 void setup() {
   Serial.begin(9600);
 
@@ -49,25 +44,36 @@ void setup() {
   lcd.clear();
 
   pinMode(releaseLock, OUTPUT);
+
 }
 
 void loop() {
 
   int userPassword[4];
   bool isUserCorrect = false;
+  char start = customKeypad.getKey();
 
   switch (s) {
-    case savePower:
-      // LowPower.powerDown(SLEEP_FOREVER, ADC_OFF, BOD_OFF); //will implement once interrupt is configured
-      //      lcd.setCursor(0, 0);
-      lcd.print("System is awake!");
-      systemDelay(1000);
-      s = check;
+    case wait:
+      if (lockMessage) {
+        lockMessage = false;
+        lcd.print("System Locked..");
+      }
+      if (start) {
+        s = check;
+        lockMessage = true;
+        lcd.clear();
+        break;
+      }
       break;
     case check:
       inputPassword(userPassword);
-      if (isReset == true) {                              //exit case and enter new password case
+      if (isReset == 1) {                              //exit case and enter new password case
         s = newPassword;
+        break;
+      } else if (isReset == -1) {
+        s = wait;
+        isReset = 0;
         break;
       }
       isUserCorrect = checkPassword(userPassword);
@@ -95,7 +101,7 @@ void loop() {
           systemDelay(15000);
         }
       }
-      //      s = savePower;
+      s = wait;
       break;
     case newPassword:
       lcd.clear();
@@ -107,7 +113,7 @@ void loop() {
         lcd.print("Incorrect...");
         systemDelay(3000);
         lcd.clear();
-        s = savePower;
+        s = wait;
         break;
       }
       lcd.clear();
@@ -134,7 +140,7 @@ void loop() {
           lcd.clear();
         }
       }
-      s = savePower;
+      s = wait;
       break;
 
   }
@@ -159,13 +165,12 @@ void inputPassword(int* password) {
         lcd.print("A=yes, B=no");
         char userResponse = getUserPress();
         if (userResponse == 'A') {
-          isReset = true;
+          isReset = 1;
           break;
         } else {
+          isReset = -1;
           lcd.clear();
-          lcd.setCursor(0, 0);
-          lcd.print("Password:");
-          continue;
+          break;
         }
       }
       int buttonPressed = charToInt(key);
